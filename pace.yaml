@@ -1,0 +1,576 @@
+warning: in the working copy of 'src/app/globals.css', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/app/layout.tsx', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/src/app/globals.css b/src/app/globals.css[m
+[1mindex 4d29c72..db8f590 100644[m
+[1m--- a/src/app/globals.css[m
+[1m+++ b/src/app/globals.css[m
+[36m@@ -102,27 +102,7 @@[m [mbody {[m
+   gap: 12px;[m
+ }[m
+ [m
+[31m-.network-btn {[m
+[31m-  padding: 8px 12px;[m
+[31m-  font-family: inherit;[m
+[31m-  font-size: 11px;[m
+[31m-  font-weight: 700;[m
+[31m-  border-radius: 4px;[m
+[31m-  border: 1px solid var(--border);[m
+[31m-  background-color: var(--bg-card);[m
+[31m-  color: #d4d4d8;[m
+[31m-  cursor: pointer;[m
+[31m-}[m
+ [m
+[31m-.network-mainnet {[m
+[31m-  border-color: rgba(46, 229, 157, 0.4);[m
+[31m-  color: var(--green);[m
+[31m-}[m
+[31m-[m
+[31m-.network-devnet {[m
+[31m-  border-color: #525252;[m
+[31m-  color: #a3a3a3;[m
+[31m-}[m
+ [m
+ .main-container {[m
+   max-width: 540px;[m
+[1mdiff --git a/src/app/layout.tsx b/src/app/layout.tsx[m
+[1mindex a447f71..0e168c8 100644[m
+[1m--- a/src/app/layout.tsx[m
+[1m+++ b/src/app/layout.tsx[m
+[36m@@ -1,5 +1,6 @@[m
+ import { Space_Mono } from "next/font/google";[m
+ import "./globals.css";[m
+[32m+[m[32mimport type { ReactNode } from "react";[m
+ import { SolanaWalletProvider } from "@/components/SolanaWalletProvider";[m
+ [m
+ const spaceMono = Space_Mono({[m
+[36m@@ -12,7 +13,7 @@[m [mexport const metadata = {[m
+   description: "Deploy SPL Token-2022 assets with on-chain metadata and authority controls",[m
+ };[m
+ [m
+[31m-export default function RootLayout({ children }) {[m
+[32m+[m[32mexport default function RootLayout({ children }: { children: ReactNode }) {[m
+   return ([m
+     <html lang="en">[m
+       <body className={spaceMono.className}>[m
+[1mdiff --git a/src/components/LaunchpadForm.tsx b/src/components/LaunchpadForm.tsx[m
+[1mindex c2f3523..2106de3 100644[m
+[1m--- a/src/components/LaunchpadForm.tsx[m
+[1m+++ b/src/components/LaunchpadForm.tsx[m
+[36m@@ -1,16 +1,16 @@[m
+ "use client";[m
+ [m
+ import { useLaunchpad } from "@/hooks/useLaunchpad";[m
+[31m-import { useNetwork } from "@/components/SolanaWalletProvider";[m
+[32m+[m[32m// import { useNetwork } from "@/components/SolanaWalletProvider";[m
+ import {[m
+[31m-  NETWORKS,[m
+[32m+[m[32m  // NETWORKS,[m
+   BASE_PROTOCOL_FEE_SOL,[m
+   REVOKE_AUTHORITY_FEE_SOL,[m
+   ESTIMATED_RENT_SOL,[m
+ } from "@/config/constants";[m
+ [m
+ export function LaunchpadForm() {[m
+[31m-  const { network } = useNetwork();[m
+[32m+[m[32m  // const { network } = useNetwork();[m
+   const {[m
+     form,[m
+     updateField,[m
+[36m@@ -21,7 +21,7 @@[m [mexport function LaunchpadForm() {[m
+     handleDeploy,[m
+   } = useLaunchpad();[m
+ [m
+[31m-  const clusterQuery = network === NETWORKS.DEVNET ? "?cluster=devnet" : "";[m
+[32m+[m[32m  // const clusterQuery = network === NETWORKS.DEVNET ? "?cluster=devnet" : "";[m
+ [m
+   return ([m
+     <main className="main-container">[m
+[36m@@ -33,7 +33,7 @@[m [mexport function LaunchpadForm() {[m
+               Atomic Mint + On-Chain MetadataPointer + ATA Supply Allocation[m
+             </p>[m
+           </div>[m
+[31m-          <span className="badge">{network.toUpperCase()}</span>[m
+[32m+[m[32m          {/* <span className="badge">{network.toUpperCase()}</span> */}[m
+         </div>[m
+ [m
+         <div className="grid-two">[m
+[36m@@ -79,7 +79,8 @@[m [mexport function LaunchpadForm() {[m
+               min="0"[m
+               max="9"[m
+               value={form.decimals}[m
+[31m-              onChange={(e) => updateField("decimals", e.target.value)}[m
+[32m+[m[32m             onChange={(e) => updateField("decimals", Number(e.target.value))}[m
+[32m+[m[41m             [m
+               className="input-field"[m
+             />[m
+           </div>[m
+[36m@@ -172,7 +173,7 @@[m [mexport function LaunchpadForm() {[m
+             <p>{result.message}</p>[m
+             {result.mintAddress && ([m
+               <a[m
+[31m-                href={`https://explorer.solana.com/address/${result.mintAddress}${clusterQuery}`}[m
+[32m+[m[32m                href={`https://explorer.solana.com/address/${result.mintAddress}`}[m
+                 target="_blank"[m
+                 rel="noreferrer"[m
+                 className="explorer-link"[m
+[1mdiff --git a/src/components/SolanaWalletProvider.tsx b/src/components/SolanaWalletProvider.tsx[m
+[1mindex 893b21e..af412d6 100644[m
+[1m--- a/src/components/SolanaWalletProvider.tsx[m
+[1m+++ b/src/components/SolanaWalletProvider.tsx[m
+[36m@@ -1,39 +1,19 @@[m
+ "use client";[m
+ [m
+[31m-import { createContext, useContext, useState, useMemo } from "react";[m
+[32m+[m[32mimport { useMemo, type ReactNode } from "react";[m
+ import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";[m
+ import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";[m
+ import "@solana/wallet-adapter-react-ui/styles.css";[m
+[31m-import { NETWORKS, RPC_ENDPOINTS } from "@/config/constants";[m
+[32m+[m[32mimport { SOLANA_RPC_URL } from "@/config/constants";[m
+ [m
+[31m-const NetworkContext = createContext({[m
+[31m-  network: NETWORKS.MAINNET,[m
+[31m-  toggleNetwork: () => {},[m
+[31m-});[m
+[31m-[m
+[31m-export function useNetwork() {[m
+[31m-  return useContext(NetworkContext);[m
+[31m-}[m
+[31m-[m
+[31m-export function SolanaWalletProvider({ children }) {[m
+[31m-  // Default is Mainnet;[m
+[31m-  const [network, setNetwork] = useState(NETWORKS.MAINNET);[m
+[31m-  const endpoint = RPC_ENDPOINTS[network];[m
+[32m+[m[32mexport function SolanaWalletProvider({ children }: { children: ReactNode }) {[m
+   const wallets = useMemo(() => [], []);[m
+ [m
+[31m-  function toggleNetwork() {[m
+[31m-    setNetwork((prev) =>[m
+[31m-      prev === NETWORKS.MAINNET ? NETWORKS.DEVNET : NETWORKS.MAINNET[m
+[31m-    );[m
+[31m-  }[m
+[31m-[m
+   return ([m
+[31m-    <NetworkContext.Provider value={{ network, toggleNetwork }}>[m
+[31m-      <ConnectionProvider endpoint={endpoint}>[m
+[31m-        <WalletProvider wallets={wallets} autoConnect>[m
+[31m-          <WalletModalProvider>{children}</WalletModalProvider>[m
+[31m-        </WalletProvider>[m
+[31m-      </ConnectionProvider>[m
+[31m-    </NetworkContext.Provider>[m
+[32m+[m[32m    <ConnectionProvider endpoint={SOLANA_RPC_URL}>[m
+[32m+[m[32m      <WalletProvider wallets={wallets} autoConnect>[m
+[32m+[m[32m        <WalletModalProvider>{children}</WalletModalProvider>[m
+[32m+[m[32m      </WalletProvider>[m
+[32m+[m[32m    </ConnectionProvider>[m
+   );[m
+[31m-}[m
+[32m+[m[32m}[m
+\ No newline at end of file[m
+[1mdiff --git a/src/config/constants.ts b/src/config/constants.ts[m
+[1mindex 01ee996..181ad5a 100644[m
+[1m--- a/src/config/constants.ts[m
+[1m+++ b/src/config/constants.ts[m
+[36m@@ -1,17 +1,20 @@[m
+[31m-export const TREASURY_WALLET_ADDRESS: string =[m
+[31m-  process.env.NEXT_PUBLIC_TREASURY_WALLET || "F3FeCPujtrVpLyNynmXQTAM4okuvMmi9TyTFziMRaFyL";[m
+[32m+[m[32mfunction requireEnv(value: string | undefined, name: string): string {[m
+[32m+[m[32m  if (!value) {[m
+[32m+[m[32m    throw new Error(`Missing environment variable: ${name}`);[m
+[32m+[m[32m  }[m
+ [m
+[31m-export const NETWORKS = {[m
+[31m-  MAINNET : "mainnet-beta",[m
+[31m-  DEVNET: "devnet",[m
+[31m-};[m
+[32m+[m[32m  return value;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mexport const TREASURY_WALLET_ADDRESS: string = requireEnv([m
+[32m+[m[32m  process.env.NEXT_PUBLIC_TREASURY_WALLET,[m
+[32m+[m[32m  "NEXT_PUBLIC_TREASURY_WALLET"[m
+[32m+[m[32m);[m
+ [m
+[31m-export const RPC_ENDPOINTS = {[m
+[31m-  "mainnet-beta":[m
+[31m-    process.env.NEXT_PUBLIC_MAINNET_RPC_URL || "https://api.mainnet-beta.solana.com",[m
+[31m-  devnet:[m
+[31m-    process.env.NEXT_PUBLIC_DEVNET_RPC_URL || "https://api.devnet.solana.com",[m
+[31m-};[m
+[32m+[m[32mexport const SOLANA_RPC_URL: string = requireEnv([m
+[32m+[m[32m  process.env.NEXT_PUBLIC_SOLANA_RPC,[m
+[32m+[m[32m  "NEXT_PUBLIC_SOLANA_RPC"[m
+[32m+[m[32m);[m
+ [m
+ export const DEFAULT_DECIMALS = 9;[m
+ export const BASE_PROTOCOL_FEE_SOL = 0.01;[m
+[1mdiff --git a/src/hooks/useLaunchpad.ts b/src/hooks/useLaunchpad.ts[m
+[1mindex 2a32600..afc6ca0 100644[m
+[1m--- a/src/hooks/useLaunchpad.ts[m
+[1m+++ b/src/hooks/useLaunchpad.ts[m
+[36m@@ -8,6 +8,8 @@[m [mimport {[m
+   calculateProtocolFeeSol,[m
+ } from "@/services/tokenService";[m
+ [m
+[32m+[m[32mimport type { FormEvent } from "react";[m
+[32m+[m
+ export function useLaunchpad() {[m
+   const { connection } = useConnection();[m
+   const wallet = useWallet();[m
+[36m@@ -30,9 +32,12 @@[m [mexport function useLaunchpad() {[m
+     txSignature: "",[m
+   });[m
+ [m
+[31m-  function updateField(field, value) {[m
+[31m-    setForm((prev) => ({ ...prev, [field]: value }));[m
+[31m-  }[m
+[32m+[m[32m  function updateField<K extends keyof typeof form>([m
+[32m+[m[32m  field: K,[m
+[32m+[m[32m  value: (typeof form)[K][m
+[32m+[m[32m) {[m
+[32m+[m[32m  setForm((prev) => ({ ...prev, [field]: value }));[m
+[32m+[m[32m}[m
+ [m
+   const protocolFeeSol = calculateProtocolFeeSol([m
+     form.revokeFreeze,[m
+[36m@@ -42,7 +47,7 @@[m [mexport function useLaunchpad() {[m
+     (protocolFeeSol + ESTIMATED_RENT_SOL).toFixed(4)[m
+   );[m
+ [m
+[31m-  async function handleDeploy(e) {[m
+[32m+[m[32m  async function handleDeploy(e: FormEvent<HTMLFormElement>) {[m
+     e.preventDefault();[m
+     setIsLoading(true);[m
+     setResult({[m
+[36m@@ -68,7 +73,7 @@[m [mexport function useLaunchpad() {[m
+     } catch (err) {[m
+       setResult({[m
+         type: "error",[m
+[31m-        message: err.message || "Token deployment failed.",[m
+[32m+[m[32m       message: err instanceof Error ? err.message : "Token deployment failed.",[m
+         mintAddress: "",[m
+         txSignature: "",[m
+       });[m
+[1mdiff --git a/src/services/tokenService.ts b/src/services/tokenService.ts[m
+[1mindex 295faaa..1d34905 100644[m
+[1m--- a/src/services/tokenService.ts[m
+[1m+++ b/src/services/tokenService.ts[m
+[36m@@ -1,11 +1,14 @@[m
+[32m+[m
+ import { Buffer } from "buffer";[m
+ import {[m
+[32m+[m[32m  Connection,[m
+   Keypair,[m
+   PublicKey,[m
+   SystemProgram,[m
+   Transaction,[m
+   LAMPORTS_PER_SOL,[m
+ } from "@solana/web3.js";[m
+[32m+[m
+ import {[m
+   TOKEN_2022_PROGRAM_ID,[m
+   ExtensionType,[m
+[36m@@ -20,50 +23,105 @@[m [mimport {[m
+   createMintToInstruction,[m
+   createSetAuthorityInstruction,[m
+ } from "@solana/spl-token";[m
+[31m-import { createInitializeInstruction, pack } from "@solana/spl-token-metadata";[m
+[32m+[m
+[32m+[m[32mimport type { WalletContextState } from "@solana/wallet-adapter-react";[m
+[32m+[m[32mimport {[m
+[32m+[m[32m  createInitializeInstruction,[m
+[32m+[m[32m  pack,[m
+[32m+[m[32m} from "@solana/spl-token-metadata";[m
+[32m+[m
+ import {[m
+   TREASURY_WALLET_ADDRESS,[m
+[31m-  DEFAULT_DECIMALS,[m
+   BASE_PROTOCOL_FEE_SOL,[m
+   REVOKE_AUTHORITY_FEE_SOL,[m
+ } from "@/config/constants";[m
+ [m
+[32m+[m[32m// Browser Buffer polyfill[m
+ if (typeof window !== "undefined") {[m
+   window.Buffer = window.Buffer || Buffer;[m
+ }[m
+ [m
+[31m-export function calculateProtocolFeeSol(revokeFreeze, revokeMint) {[m
+[31m-  let fee = BASE_PROTOCOL_FEE_SOL;[m
+[31m-  if (revokeFreeze) fee += REVOKE_AUTHORITY_FEE_SOL;[m
+[31m-  if (revokeMint) fee += REVOKE_AUTHORITY_FEE_SOL;[m
+[31m-  return Number(fee.toFixed(4));[m
+[32m+[m[32m// Types[m
+[32m+[m[32mexport interface LaunchpadFormData {[m
+[32m+[m[32m  name: string;[m
+[32m+[m[32m  symbol: string;[m
+[32m+[m[32m  uri: string;[m
+[32m+[m[32m  supply: string;[m
+[32m+[m[32m  decimals: number | string;[m
+[32m+[m[32m  revokeFreeze: boolean;[m
+[32m+[m[32m  revokeMint: boolean;[m
+ }[m
+ [m
+[31m-export async function deployToken2022({ connection, wallet, formData }) {[m
+[31m-  if (!wallet || !wallet.publicKey) {[m
+[32m+[m[32minterface DeployTokenParams {[m
+[32m+[m[32m  connection: Connection;[m
+[32m+[m[32m  wallet: WalletContextState;[m
+[32m+[m[32m  formData: LaunchpadFormData;[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mconst MAX_U64 = (1n << 64n) - 1n;[m
+[32m+[m
+[32m+[m[32m// Calculate protocol fee in SOL[m
+[32m+[m[32mexport function calculateProtocolFeeSol([m
+[32m+[m[32m  revokeFreeze: boolean,[m
+[32m+[m[32m  revokeMint: boolean[m
+[32m+[m[32m): number {[m
+[32m+[m[32m  return ([m
+[32m+[m[32m    BASE_PROTOCOL_FEE_SOL +[m
+[32m+[m[32m    (revokeFreeze ? REVOKE_AUTHORITY_FEE_SOL : 0) +[m
+[32m+[m[32m    (revokeMint ? REVOKE_AUTHORITY_FEE_SOL : 0)[m
+[32m+[m[32m  );[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32m// Deploy Token-2022[m
+[32m+[m[32mexport async function deployToken2022({[m
+[32m+[m[32m  connection,[m
+[32m+[m[32m  wallet,[m
+[32m+[m[32m  formData,[m
+[32m+[m[32m}: DeployTokenParams) {[m
+[32m+[m[32m  const owner = wallet.publicKey;[m
+[32m+[m
+[32m+[m[32m  if (!wallet.connected || !owner) {[m
+     throw new Error("Connect your Solana wallet before deploying.");[m
+   }[m
+ [m
+[31m-  const name = formData.name?.trim();[m
+[31m-  const symbol = formData.symbol?.trim().toUpperCase();[m
+[31m-  const uri = formData.uri?.trim();[m
+[31m-  const supply = Number(formData.supply);[m
+[31m-  const decimals = Number(formData.decimals ?? DEFAULT_DECIMALS);[m
+[32m+[m[32m  // Validate form[m
+[32m+[m[32m  const name = formData.name.trim();[m
+[32m+[m[32m  const symbol = formData.symbol.trim();[m
+[32m+[m[32m  const uri = formData.uri.trim();[m
+[32m+[m[32m  const decimals = Number(formData.decimals);[m
+ [m
+[31m-  if (!name || !symbol) {[m
+[31m-    throw new Error("Token Name and Ticker Symbol are required.");[m
+[32m+[m[32m  if (!name || !symbol || !uri) {[m
+[32m+[m[32m    throw new Error("Name, symbol and metadata URI are required.");[m
+   }[m
+[31m-  if (!uri) {[m
+[31m-    throw new Error("Metadata JSON / Image URL is required.");[m
+[32m+[m
+[32m+[m[32m  if (!/^\d+$/.test(formData.supply)) {[m
+[32m+[m[32m    throw new Error("Supply must be a positive whole number.");[m
+   }[m
+[31m-  if (!supply || supply <= 0) {[m
+[31m-    throw new Error("Initial Supply must be greater than 0.");[m
+[32m+[m
+[32m+[m[32m  const supply = BigInt(formData.supply);[m
+[32m+[m
+[32m+[m[32m  if (supply <= 0n) {[m
+[32m+[m[32m    throw new Error("Supply must be greater than zero.");[m
+   }[m
+ [m
+[32m+[m[32m  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 9) {[m
+[32m+[m[32m    throw new Error("Decimals must be between 0 and 9.");[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  // Calculate raw token supply without floating-point arithmetic[m
+[32m+[m[32m  const rawSupply = supply * 10n ** BigInt(decimals);[m
+[32m+[m
+[32m+[m[32m  if (rawSupply > MAX_U64) {[m
+[32m+[m[32m    throw new Error("Token supply exceeds the maximum supported amount.");[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  // Generate mint and treasury addresses[m
+   const mintKeypair = Keypair.generate();[m
+[31m-  const treasuryPubkey = new PublicKey(TREASURY_WALLET_ADDRESS);[m
+[32m+[m[32m  const treasury = new PublicKey(TREASURY_WALLET_ADDRESS);[m
+ [m
+[32m+[m[32m  // Prepare on-chain metadata[m
+   const metadata = {[m
+[32m+[m[32m    updateAuthority: owner,[m
+     mint: mintKeypair.publicKey,[m
+     name,[m
+     symbol,[m
+[36m@@ -71,98 +129,109 @@[m [mexport async function deployToken2022({ connection, wallet, formData }) {[m
+     additionalMetadata: [],[m
+   };[m
+ [m
+[31m-  // 1. Calculate base Mint space (for createAccount) and full rent lamports (Mint + Metadata)[m
+[32m+[m[32m  // Calculate mint size and rent[m
+   const mintLen = getMintLen([ExtensionType.MetadataPointer]);[m
+   const metadataLen = TYPE_SIZE + LENGTH_SIZE + pack(metadata).length;[m
+[32m+[m
+   const rentLamports = await connection.getMinimumBalanceForRentExemption([m
+     mintLen + metadataLen[m
+[31m-  [m
+   );[m
+ [m
+[31m-  // 2. Derive the user's Associated Token Account (ATA) for Token-2022[m
+[32m+[m[32m  // Derive associated token account[m
+   const associatedToken = getAssociatedTokenAddressSync([m
+     mintKeypair.publicKey,[m
+[31m-    wallet.publicKey,[m
+[32m+[m[32m    owner,[m
+     false,[m
+     TOKEN_2022_PROGRAM_ID[m
+   );[m
+ [m
+[31m-  // 3. Calculate total service fee in lamports[m
+[32m+[m[32m  // Calculate protocol fee[m
+   const protocolFeeSol = calculateProtocolFeeSol([m
+     formData.revokeFreeze,[m
+     formData.revokeMint[m
+   );[m
+[31m-  const protocolFeeLamports = Math.round(protocolFeeSol * LAMPORTS_PER_SOL);[m
+ [m
+[31m-  // 4. Calculate raw token supply using BigInt to prevent JavaScript number overflow[m
+[31m-  const rawSupply = BigInt(Math.round(supply)) * BigInt(10 ** decimals);[m
+[32m+[m[32m  if (!Number.isFinite(protocolFeeSol) || protocolFeeSol < 0) {[m
+[32m+[m[32m    throw new Error("Invalid protocol fee configuration.");[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  const protocolFeeLamports = Math.round([m
+[32m+[m[32m    protocolFeeSol * LAMPORTS_PER_SOL[m
+[32m+[m[32m  );[m
+ [m
+[32m+[m[32m  // Build atomic deployment transaction[m
+   const transaction = new Transaction().add([m
+[31m-    // Ix 0: Transfer Protocol Fee to your Treasury Wallet[m
+[32m+[m[32m    // 1. Transfer protocol fee[m
+     SystemProgram.transfer({[m
+[31m-      fromPubkey: wallet.publicKey,[m
+[31m-      toPubkey: treasuryPubkey,[m
+[32m+[m[32m      fromPubkey: owner,[m
+[32m+[m[32m      toPubkey: treasury,[m
+       lamports: protocolFeeLamports,[m
+     }),[m
+[31m-    // Ix 1: Allocate Mint account on-chain (space = mintLen only; lamports = full rent)[m
+[32m+[m
+[32m+[m[32m    // 2. Create Token-2022 mint account[m
+     SystemProgram.createAccount({[m
+[31m-      fromPubkey: wallet.publicKey,[m
+[32m+[m[32m      fromPubkey: owner,[m
+       newAccountPubkey: mintKeypair.publicKey,[m
+       space: mintLen,[m
+       lamports: rentLamports,[m
+       programId: TOKEN_2022_PROGRAM_ID,[m
+     }),[m
+[31m-    // Ix 2: Point metadata to the Mint account itself[m
+[32m+[m
+[32m+[m[32m    // 3. Initialize metadata pointer[m
+     createInitializeMetadataPointerInstruction([m
+       mintKeypair.publicKey,[m
+[31m-      wallet.publicKey,[m
+[32m+[m[32m      owner,[m
+       mintKeypair.publicKey,[m
+       TOKEN_2022_PROGRAM_ID[m
+     ),[m
+[31m-    // Ix 3: Initialize Mint (sets freezeAuthority to null if revokeFreeze is checked)[m
+[32m+[m
+[32m+[m[32m    // 4. Initialize mint[m
+     createInitializeMintInstruction([m
+       mintKeypair.publicKey,[m
+       decimals,[m
+[31m-      wallet.publicKey,[m
+[31m-      formData.revokeFreeze ? null : wallet.publicKey,[m
+[32m+[m[32m      owner,[m
+[32m+[m[32m      formData.revokeFreeze ? null : owner,[m
+       TOKEN_2022_PROGRAM_ID[m
+     ),[m
+[31m-    // Ix 4: Write TokenMetadata (name, symbol, uri) into the Mint account[m
+[32m+[m
+[32m+[m[32m    // 5. Initialize on-chain metadata[m
+     createInitializeInstruction({[m
+       programId: TOKEN_2022_PROGRAM_ID,[m
+       mint: mintKeypair.publicKey,[m
+       metadata: mintKeypair.publicKey,[m
+[31m-      name: metadata.name,[m
+[31m-      symbol: metadata.symbol,[m
+[31m-      uri: metadata.uri,[m
+[31m-      mintAuthority: wallet.publicKey,[m
+[31m-      updateAuthority: wallet.publicKey,[m
+[32m+[m[32m      name,[m
+[32m+[m[32m      symbol,[m
+[32m+[m[32m      uri,[m
+[32m+[m[32m      mintAuthority: owner,[m
+[32m+[m[32m      updateAuthority: owner,[m
+     }),[m
+[31m-    // Ix 5: Create the user's Associated Token Account (ATA)[m
+[32m+[m
+[32m+[m[32m    // 6. Create associated token account[m
+     createAssociatedTokenAccountInstruction([m
+[31m-      wallet.publicKey,[m
+[32m+[m[32m      owner,[m
+       associatedToken,[m
+[31m-      wallet.publicKey,[m
+[32m+[m[32m      owner,[m
+       mintKeypair.publicKey,[m
+       TOKEN_2022_PROGRAM_ID[m
+     ),[m
+[31m-    // Ix 6: Mint initial supply into the user's ATA[m
+[32m+[m
+[32m+[m[32m    // 7. Mint initial supply[m
+     createMintToInstruction([m
+       mintKeypair.publicKey,[m
+       associatedToken,[m
+[31m-      wallet.publicKey,[m
+[32m+[m[32m      owner,[m
+       rawSupply,[m
+       [],[m
+       TOKEN_2022_PROGRAM_ID[m
+     )[m
+   );[m
+ [m
+[31m-  // Ix 7 : Permanently lock total supply by setting MintTokens authority to null[m
+[32m+[m[32m  // 8. Revoke mint authority if requested[m
+   if (formData.revokeMint) {[m
+     transaction.add([m
+       createSetAuthorityInstruction([m
+         mintKeypair.publicKey,[m
+[31m-        wallet.publicKey,[m
+[32m+[m[32m        owner,[m
+         AuthorityType.MintTokens,[m
+         null,[m
+         [],[m
+[36m@@ -171,12 +240,33 @@[m [mexport async function deployToken2022({ connection, wallet, formData }) {[m
+     );[m
+   }[m
+ [m
+[31m-  transaction.feePayer = wallet.publicKey;[m
+[32m+[m[32m  // Sign and submit transaction[m
+   const latestBlockhash = await connection.getLatestBlockhash("confirmed");[m
+[32m+[m
+[32m+[m[32m  transaction.feePayer = owner;[m
+   transaction.recentBlockhash = latestBlockhash.blockhash;[m
+   transaction.partialSign(mintKeypair);[m
+ [m
+[31m-  const txSignature = await wallet.sendTransaction(transaction, connection);[m
+[32m+[m[32m  const txSignature = await wallet.sendTransaction([m
+[32m+[m[32m    transaction,[m
+[32m+[m[32m    connection[m
+[32m+[m[32m  );[m
+[32m+[m
+[32m+[m[32m  // Confirm on-chain execution[m
+[32m+[m[32m  const confirmation = await connection.confirmTransaction([m
+[32m+[m[32m    {[m
+[32m+[m[32m      signature: txSignature,[m
+[32m+[m[32m      blockhash: latestBlockhash.blockhash,[m
+[32m+[m[32m      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,[m
+[32m+[m[32m    },[m
+[32m+[m[32m    "confirmed"[m
+[32m+[m[32m  );[m
+[32m+[m
+[32m+[m[32m  if (confirmation.value.err) {[m
+[32m+[m[32m    throw new Error([m
+[32m+[m[32m      `Token deployment failed: ${JSON.stringify(confirmation.value.err)}`[m
+[32m+[m[32m    );[m
+[32m+[m[32m  }[m
+ [m
+   return {[m
+     mintAddress: mintKeypair.publicKey.toBase58(),[m

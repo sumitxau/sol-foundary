@@ -1,11 +1,14 @@
+
 import { Buffer } from "buffer";
 import {
+  Connection,
   Keypair,
   PublicKey,
   SystemProgram,
   Transaction,
   LAMPORTS_PER_SOL,
 } from "@solana/web3.js";
+
 import {
   TOKEN_2022_PROGRAM_ID,
   ExtensionType,
@@ -20,50 +23,105 @@ import {
   createMintToInstruction,
   createSetAuthorityInstruction,
 } from "@solana/spl-token";
-import { createInitializeInstruction, pack } from "@solana/spl-token-metadata";
+
+import type { WalletContextState } from "@solana/wallet-adapter-react";
+import {
+  createInitializeInstruction,
+  pack,
+} from "@solana/spl-token-metadata";
+
 import {
   TREASURY_WALLET_ADDRESS,
-  DEFAULT_DECIMALS,
   BASE_PROTOCOL_FEE_SOL,
   REVOKE_AUTHORITY_FEE_SOL,
 } from "@/config/constants";
 
+// Browser Buffer polyfill
 if (typeof window !== "undefined") {
   window.Buffer = window.Buffer || Buffer;
 }
 
-export function calculateProtocolFeeSol(revokeFreeze, revokeMint) {
-  let fee = BASE_PROTOCOL_FEE_SOL;
-  if (revokeFreeze) fee += REVOKE_AUTHORITY_FEE_SOL;
-  if (revokeMint) fee += REVOKE_AUTHORITY_FEE_SOL;
-  return Number(fee.toFixed(4));
+// Types
+export interface LaunchpadFormData {
+  name: string;
+  symbol: string;
+  uri: string;
+  supply: string;
+  decimals: number | string;
+  revokeFreeze: boolean;
+  revokeMint: boolean;
 }
 
-export async function deployToken2022({ connection, wallet, formData }) {
-  if (!wallet || !wallet.publicKey) {
+interface DeployTokenParams {
+  connection: Connection;
+  wallet: WalletContextState;
+  formData: LaunchpadFormData;
+}
+
+const MAX_U64 = (1n << 64n) - 1n;
+
+// Calculate protocol fee in SOL
+export function calculateProtocolFeeSol(
+  revokeFreeze: boolean,
+  revokeMint: boolean
+): number {
+  return (
+    BASE_PROTOCOL_FEE_SOL +
+    (revokeFreeze ? REVOKE_AUTHORITY_FEE_SOL : 0) +
+    (revokeMint ? REVOKE_AUTHORITY_FEE_SOL : 0)
+  );
+}
+
+// Deploy Token-2022
+export async function deployToken2022({
+  connection,
+  wallet,
+  formData,
+}: DeployTokenParams) {
+  const owner = wallet.publicKey;
+
+  if (!wallet.connected || !owner) {
     throw new Error("Connect your Solana wallet before deploying.");
   }
 
-  const name = formData.name?.trim();
-  const symbol = formData.symbol?.trim().toUpperCase();
-  const uri = formData.uri?.trim();
-  const supply = Number(formData.supply);
-  const decimals = Number(formData.decimals ?? DEFAULT_DECIMALS);
+  // Validate form
+  const name = formData.name.trim();
+  const symbol = formData.symbol.trim();
+  const uri = formData.uri.trim();
+  const decimals = Number(formData.decimals);
 
-  if (!name || !symbol) {
-    throw new Error("Token Name and Ticker Symbol are required.");
-  }
-  if (!uri) {
-    throw new Error("Metadata JSON / Image URL is required.");
-  }
-  if (!supply || supply <= 0) {
-    throw new Error("Initial Supply must be greater than 0.");
+  if (!name || !symbol || !uri) {
+    throw new Error("Name, symbol and metadata URI are required.");
   }
 
+  if (!/^\d+$/.test(formData.supply)) {
+    throw new Error("Supply must be a positive whole number.");
+  }
+
+  const supply = BigInt(formData.supply);
+
+  if (supply <= 0n) {
+    throw new Error("Supply must be greater than zero.");
+  }
+
+  if (!Number.isInteger(decimals) || decimals < 0 || decimals > 9) {
+    throw new Error("Decimals must be between 0 and 9.");
+  }
+
+  // Calculate raw token supply without floating-point arithmetic
+  const rawSupply = supply * 10n ** BigInt(decimals);
+
+  if (rawSupply > MAX_U64) {
+    throw new Error("Token supply exceeds the maximum supported amount.");
+  }
+
+  // Generate mint and treasury addresses
   const mintKeypair = Keypair.generate();
-  const treasuryPubkey = new PublicKey(TREASURY_WALLET_ADDRESS);
+  const treasury = new PublicKey(TREASURY_WALLET_ADDRESS);
 
+  // Prepare on-chain metadata
   const metadata = {
+    updateAuthority: owner,
     mint: mintKeypair.publicKey,
     name,
     symbol,
@@ -71,98 +129,109 @@ export async function deployToken2022({ connection, wallet, formData }) {
     additionalMetadata: [],
   };
 
-  // 1. Calculate base Mint space (for createAccount) and full rent lamports (Mint + Metadata)
+  // Calculate mint size and rent
   const mintLen = getMintLen([ExtensionType.MetadataPointer]);
   const metadataLen = TYPE_SIZE + LENGTH_SIZE + pack(metadata).length;
+
   const rentLamports = await connection.getMinimumBalanceForRentExemption(
     mintLen + metadataLen
-  
   );
 
-  // 2. Derive the user's Associated Token Account (ATA) for Token-2022
+  // Derive associated token account
   const associatedToken = getAssociatedTokenAddressSync(
     mintKeypair.publicKey,
-    wallet.publicKey,
+    owner,
     false,
     TOKEN_2022_PROGRAM_ID
   );
 
-  // 3. Calculate total service fee in lamports
+  // Calculate protocol fee
   const protocolFeeSol = calculateProtocolFeeSol(
     formData.revokeFreeze,
     formData.revokeMint
   );
-  const protocolFeeLamports = Math.round(protocolFeeSol * LAMPORTS_PER_SOL);
 
-  // 4. Calculate raw token supply using BigInt to prevent JavaScript number overflow
-  const rawSupply = BigInt(Math.round(supply)) * BigInt(10 ** decimals);
+  if (!Number.isFinite(protocolFeeSol) || protocolFeeSol < 0) {
+    throw new Error("Invalid protocol fee configuration.");
+  }
 
+  const protocolFeeLamports = Math.round(
+    protocolFeeSol * LAMPORTS_PER_SOL
+  );
+
+  // Build atomic deployment transaction
   const transaction = new Transaction().add(
-    // Ix 0: Transfer Protocol Fee to your Treasury Wallet
+    // 1. Transfer protocol fee
     SystemProgram.transfer({
-      fromPubkey: wallet.publicKey,
-      toPubkey: treasuryPubkey,
+      fromPubkey: owner,
+      toPubkey: treasury,
       lamports: protocolFeeLamports,
     }),
-    // Ix 1: Allocate Mint account on-chain (space = mintLen only; lamports = full rent)
+
+    // 2. Create Token-2022 mint account
     SystemProgram.createAccount({
-      fromPubkey: wallet.publicKey,
+      fromPubkey: owner,
       newAccountPubkey: mintKeypair.publicKey,
       space: mintLen,
       lamports: rentLamports,
       programId: TOKEN_2022_PROGRAM_ID,
     }),
-    // Ix 2: Point metadata to the Mint account itself
+
+    // 3. Initialize metadata pointer
     createInitializeMetadataPointerInstruction(
       mintKeypair.publicKey,
-      wallet.publicKey,
+      owner,
       mintKeypair.publicKey,
       TOKEN_2022_PROGRAM_ID
     ),
-    // Ix 3: Initialize Mint (sets freezeAuthority to null if revokeFreeze is checked)
+
+    // 4. Initialize mint
     createInitializeMintInstruction(
       mintKeypair.publicKey,
       decimals,
-      wallet.publicKey,
-      formData.revokeFreeze ? null : wallet.publicKey,
+      owner,
+      formData.revokeFreeze ? null : owner,
       TOKEN_2022_PROGRAM_ID
     ),
-    // Ix 4: Write TokenMetadata (name, symbol, uri) into the Mint account
+
+    // 5. Initialize on-chain metadata
     createInitializeInstruction({
       programId: TOKEN_2022_PROGRAM_ID,
       mint: mintKeypair.publicKey,
       metadata: mintKeypair.publicKey,
-      name: metadata.name,
-      symbol: metadata.symbol,
-      uri: metadata.uri,
-      mintAuthority: wallet.publicKey,
-      updateAuthority: wallet.publicKey,
+      name,
+      symbol,
+      uri,
+      mintAuthority: owner,
+      updateAuthority: owner,
     }),
-    // Ix 5: Create the user's Associated Token Account (ATA)
+
+    // 6. Create associated token account
     createAssociatedTokenAccountInstruction(
-      wallet.publicKey,
+      owner,
       associatedToken,
-      wallet.publicKey,
+      owner,
       mintKeypair.publicKey,
       TOKEN_2022_PROGRAM_ID
     ),
-    // Ix 6: Mint initial supply into the user's ATA
+
+    // 7. Mint initial supply
     createMintToInstruction(
       mintKeypair.publicKey,
       associatedToken,
-      wallet.publicKey,
+      owner,
       rawSupply,
       [],
       TOKEN_2022_PROGRAM_ID
     )
   );
 
-  // Ix 7 : Permanently lock total supply by setting MintTokens authority to null
+  // 8. Revoke mint authority if requested
   if (formData.revokeMint) {
     transaction.add(
       createSetAuthorityInstruction(
         mintKeypair.publicKey,
-        wallet.publicKey,
+        owner,
         AuthorityType.MintTokens,
         null,
         [],
@@ -171,12 +240,33 @@ export async function deployToken2022({ connection, wallet, formData }) {
     );
   }
 
-  transaction.feePayer = wallet.publicKey;
+  // Sign and submit transaction
   const latestBlockhash = await connection.getLatestBlockhash("confirmed");
+
+  transaction.feePayer = owner;
   transaction.recentBlockhash = latestBlockhash.blockhash;
   transaction.partialSign(mintKeypair);
 
-  const txSignature = await wallet.sendTransaction(transaction, connection);
+  const txSignature = await wallet.sendTransaction(
+    transaction,
+    connection
+  );
+
+  // Confirm on-chain execution
+  const confirmation = await connection.confirmTransaction(
+    {
+      signature: txSignature,
+      blockhash: latestBlockhash.blockhash,
+      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+    },
+    "confirmed"
+  );
+
+  if (confirmation.value.err) {
+    throw new Error(
+      `Token deployment failed: ${JSON.stringify(confirmation.value.err)}`
+    );
+  }
 
   return {
     mintAddress: mintKeypair.publicKey.toBase58(),

@@ -8,6 +8,8 @@ import {
   calculateProtocolFeeSol,
 } from "@/services/tokenService";
 
+import type { FormEvent } from "react";
+
 export function useLaunchpad() {
   const { connection } = useConnection();
   const wallet = useWallet();
@@ -30,9 +32,12 @@ export function useLaunchpad() {
     txSignature: "",
   });
 
-  function updateField(field, value) {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  }
+  function updateField<K extends keyof typeof form>(
+  field: K,
+  value: (typeof form)[K]
+) {
+  setForm((prev) => ({ ...prev, [field]: value }));
+}
 
   const protocolFeeSol = calculateProtocolFeeSol(
     form.revokeFreeze,
@@ -42,7 +47,7 @@ export function useLaunchpad() {
     (protocolFeeSol + ESTIMATED_RENT_SOL).toFixed(4)
   );
 
-  async function handleDeploy(e) {
+  async function handleDeploy(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsLoading(true);
     setResult({
@@ -68,7 +73,7 @@ export function useLaunchpad() {
     } catch (err) {
       setResult({
         type: "error",
-        message: err.message || "Token deployment failed.",
+       message: err instanceof Error ? err.message : "Token deployment failed.",
         mintAddress: "",
         txSignature: "",
       });

@@ -1,16 +1,16 @@
 "use client";
 
 import { useLaunchpad } from "@/hooks/useLaunchpad";
-import { useNetwork } from "@/components/SolanaWalletProvider";
+// import { useNetwork } from "@/components/SolanaWalletProvider";
 import {
-  NETWORKS,
+  // NETWORKS,
   BASE_PROTOCOL_FEE_SOL,
   REVOKE_AUTHORITY_FEE_SOL,
   ESTIMATED_RENT_SOL,
 } from "@/config/constants";
 
 export function LaunchpadForm() {
-  const { network } = useNetwork();
+  // const { network } = useNetwork();
   const {
     form,
     updateField,
@@ -21,7 +21,7 @@ export function LaunchpadForm() {
     handleDeploy,
   } = useLaunchpad();
 
-  const clusterQuery = network === NETWORKS.DEVNET ? "?cluster=devnet" : "";
+  // const clusterQuery = network === NETWORKS.DEVNET ? "?cluster=devnet" : "";
 
   return (
     <main className="main-container">
@@ -33,7 +33,7 @@ export function LaunchpadForm() {
               Atomic Mint + On-Chain MetadataPointer + ATA Supply Allocation
             </p>
           </div>
-          <span className="badge">{network.toUpperCase()}</span>
+          {/* <span className="badge">{network.toUpperCase()}</span> */}
         </div>
 
         <div className="grid-two">
@@ -79,7 +79,8 @@ export function LaunchpadForm() {
               min="0"
               max="9"
               value={form.decimals}
-              onChange={(e) => updateField("decimals", e.target.value)}
+             onChange={(e) => updateField("decimals", Number(e.target.value))}
+             
               className="input-field"
             />
           </div>
@@ -172,7 +173,7 @@ export function LaunchpadForm() {
             <p>{result.message}</p>
             {result.mintAddress && (
               <a
-                href={`https://explorer.solana.com/address/${result.mintAddress}${clusterQuery}`}
+                href={`https://explorer.solana.com/address/${result.mintAddress}`}
                 target="_blank"
                 rel="noreferrer"
                 className="explorer-link"
