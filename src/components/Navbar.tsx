@@ -2,8 +2,8 @@
 import { usePathname } from "next/navigation";
 
 import dynamic from "next/dynamic";
-import { useNetwork } from "@/components/SolanaWalletProvider";
-import { NETWORKS } from "@/config/constants";
+// import { useNetwork } from "@/components/SolanaWalletProvider";
+// import { NETWORKS } from "@/config/constants";
 import Link from "next/link";
 
 
@@ -17,8 +17,8 @@ const WalletMultiButton = dynamic(
 
 export function Navbar() {
     const pathname = usePathname(); 
-  const { network, toggleNetwork } = useNetwork();
-  const isMainnet = network === NETWORKS.MAINNET;
+  // const { network, toggleNetwork } = useNetwork();
+  // const isMainnet = network === NETWORKS.MAINNET;
 
   return (
   
