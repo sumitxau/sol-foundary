@@ -1,17 +1,20 @@
-export const TREASURY_WALLET_ADDRESS: string =
-  process.env.NEXT_PUBLIC_TREASURY_WALLET || "F3FeCPujtrVpLyNynmXQTAM4okuvMmi9TyTFziMRaFyL";
+function requireEnv(value: string | undefined, name: string): string {
+  if (!value) {
+    throw new Error(`Missing environment variable: ${name}`);
+  }
 
-export const NETWORKS = {
-  MAINNET : "mainnet-beta",
-  DEVNET: "devnet",
-};
+  return value;
+}
 
-export const RPC_ENDPOINTS = {
-  "mainnet-beta":
-    process.env.NEXT_PUBLIC_MAINNET_RPC_URL || "https://api.mainnet-beta.solana.com",
-  devnet:
-    process.env.NEXT_PUBLIC_DEVNET_RPC_URL || "https://api.devnet.solana.com",
-};
+export const TREASURY_WALLET_ADDRESS: string = requireEnv(
+  process.env.NEXT_PUBLIC_TREASURY_WALLET,
+  "NEXT_PUBLIC_TREASURY_WALLET"
+);
+
+export const SOLANA_RPC_URL: string = requireEnv(
+  process.env.NEXT_PUBLIC_SOLANA_RPC,
+  "NEXT_PUBLIC_SOLANA_RPC"
+);
 
 export const DEFAULT_DECIMALS = 9;
 export const BASE_PROTOCOL_FEE_SOL = 0.01;

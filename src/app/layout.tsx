@@ -1,5 +1,6 @@
 import { Space_Mono } from "next/font/google";
 import "./globals.css";
+import type { ReactNode } from "react";
 import { SolanaWalletProvider } from "@/components/SolanaWalletProvider";
 
 const spaceMono = Space_Mono({
@@ -12,7 +13,7 @@ export const metadata = {
   description: "Deploy SPL Token-2022 assets with on-chain metadata and authority controls",
 };
 
-export default function RootLayout({ children }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className={spaceMono.className}>
